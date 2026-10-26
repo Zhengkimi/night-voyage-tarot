@@ -162,4 +162,5 @@ description: 解讀「夜航塔羅」網站複製出來的抽牌結果，把牌�
 
 ## 範例
 
-完整範例（凱爾特十字，工作問題，10 張中 6 張逆位）見 [examples/celtic-cross-work.md](examples/celtic-cross-work.md)。這個範例示範了逆位過半時，怎麼保持正面卻不失真。
+- [examples/celtic-cross-work.md](examples/celtic-cross-work.md)：凱爾特十字，工作問題，10 張中 6 張逆位。示範逆位過半時，怎麼保持正面卻不失真
+- [examples/time-flow-love.md](examples/time-flow-love.md)：時間之流，感情是非題，3 張全是小牌且沒有聖杯。示範怎麼把「會不會遇到」轉成「可以怎麼準備」，以及依問題領域重新詮釋花色

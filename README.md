@@ -45,7 +45,8 @@ python3 -m http.server 8000
 └── .claude/skills/tarot-reading/
     ├── SKILL.md        Claude 解牌技能：把複製出來的解讀串成故事，以正面反饋為主
     └── examples/
-        └── celtic-cross-work.md   範例：凱爾特十字 · 工作問題
+        ├── celtic-cross-work.md   範例：凱爾特十字 · 工作問題
+        └── time-flow-love.md      範例：時間之流 · 感情是非題
 ```
 
 ### 用 Claude 深入解牌
