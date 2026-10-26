@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>夜航塔羅 · E2E 測試</title>
+<style>
+:root{--bg:#13152e;--fg:#ece5d3;--muted:#a7a4c4;--ok:#8fcf8f;--bad:#f08a80;--line:#383a68}
+body{margin:0;padding:20px 16px 40px;background:var(--bg);color:var(--fg);font:14px/1.6 -apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+h1{font-size:20px;margin:0 0 4px}
+#summary{font-size:16px;margin:0 0 12px;color:var(--muted)}
+#summary.ok{color:var(--ok)}#summary.bad{color:var(--bad)}
+ol{padding-left:22px;margin:0 0 20px}
+li.ok::marker{color:var(--ok)}li.bad{color:var(--bad)}
+li small{display:block;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:8px;overflow:hidden;max-width:100%}
+iframe{display:block;border:0;background:#000;max-width:100%}
+button{font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>夜航塔羅 · 端對端測試</h1>
+<p id="summary">執行中……</p>
+<p><button id="rerun" type="button">重新執行</button></p>
+<ol id="results"></ol>
+<div class="frame"><iframe id="app" title="受測頁面" width="1024" height="900"></iframe></div>
+
+<script>
+/* 在 iframe 中載入 ../index.html，以真實 DOM 事件操作整條流程。
+   需透過 http:// 開啟（file:// 下瀏覽器禁止讀取 iframe 內容）：
+   python3 -m http.server 8000 → http://localhost:8000/tests/e2e.html */
+const app=document.getElementById("app"), out=document.getElementById("results"), sum=document.getElementById("summary");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let W, D, errors=[];
+const $=s=>D.querySelector(s), $$=s=>[...D.querySelectorAll(s)];
+
+async function load(width=1024){
+  app.width=width;
+  await new Promise(r=>{app.onload=r;app.src="../index.html?t="+Date.now()});
+  W=app.contentWindow;D=W.document;errors=[];
+  W.addEventListener("error",e=>errors.push(e.message));
+  W.addEventListener("unhandledrejection",e=>errors.push(String(e.reason)));
+  await waitFor(()=>$$("#fan .fcard").length===78,"牌堆載入");
+}
+async function waitFor(fn,what="條件",timeout=5000){
+  const t0=performance.now();
+  while(performance.now()-t0<timeout){const v=fn();if(v)return v;await sleep(40)}
+  throw new Error("等待逾時："+what);
+}
+function assert(c,msg){if(!c)throw new Error(msg)}
+function eq(a,b,msg){if(a!==b)throw new Error(`${msg}（預期 ${b}，實際 ${a}）`)}
+
+function selectSpread(v){const r=$("#sp-"+v);r.checked=true;r.dispatchEvent(new W.Event("change",{bubbles:true}))}
+function setReversals(on){const c=$("#reversals");if(c.checked!==on){c.checked=on;c.dispatchEvent(new W.Event("change",{bubbles:true}))}}
+function draw(n){const avail=$$("#fan .fcard:not(.taken)");for(let k=0;k<n;k++)avail[k*5%avail.length].click()}
+const state=()=>W.TarotUI.state;
+const readingDone=()=>!$("#readingSec").hidden&&$("#reading .summary:not(.pending)")&&!$("#readingActions").hidden;
+async function revealAndRead(n){
+  $("#revealAll").click();
+  await waitFor(readingDone,"整體訊息出現",n*220+3000);
+}
+
+const tests=[];
+const test=(name,fn)=>tests.push({name,fn});
+
+/* ---------- 測試案例 ---------- */
+test("初始載入：78 張扇形牌、預設「時間之流」3 個牌位、解讀區隱藏",async()=>{
+  await load();
+  eq($$("#fan .fcard").length,78,"扇形牌數量");
+  eq($$("#board .slot").length,3,"牌位數量");
+  assert($("#sp-three").checked,"預設牌陣應為時間之流");
+  assert($("#readingSec").hidden,"解讀區應隱藏");
+  assert($("#revealAll").hidden,"「全部翻開」應隱藏");
+  assert(/還需要\s*3\s*張/.test($("#status").textContent),"狀態列應提示需要 3 張");
+  eq(W.Tarot.CARDS.length,78,"Tarot.CARDS");
+  eq(D.title,"夜航塔羅","頁面標題");
+});
+
+for(const [key,n,name] of [["single",1,"今日指引"],["three",3,"時間之流"],["choice",5,"二選一"],["celtic",10,"凱爾特十字"]]){
+  test(`完整流程「${name}」：抽 ${n} 張 → 全部翻開 → 解讀 ${n} 段，正逆位與牌名一致`,async()=>{
+    await load();
+    selectSpread(key);
+    eq($$("#board .slot").length,n,"牌位數量");
+    assert($("#spreadName").textContent.includes(name),"牌陣名稱");
+    draw(n);
+    eq($$("#board .card").length,n,"放上牌陣的牌");
+    eq($$("#fan .fcard.taken").length,n,"從牌堆移走的牌");
+    assert($("#fanWrap").classList.contains("done"),"抽滿後牌堆應鎖定");
+    assert(!$("#revealAll").hidden,"抽滿後應出現「全部翻開」");
+    await revealAndRead(n);
+    eq($$("#board .card.flipped").length,n,"翻開的牌");
+    eq($$("#reading .entry").length,n,"解讀段落");
+    assert($("#reading .summary h3").textContent.includes(name),"整體訊息標題");
+    assert($("#revealAll").hidden,"全部翻開後按鈕應隱藏");
+    const st=state();
+    $$("#board .slot").forEach((slot,i)=>{
+      const card=slot.querySelector(".card"), entry=$("#entry-"+i), c=W.Tarot.CARDS[st.picks[i].i];
+      eq(card.classList.contains("rev"),st.picks[i].rev,`第 ${i+1} 張牌陣正逆位`);
+      eq(entry.querySelector(".orient").classList.contains("rv"),st.picks[i].rev,`第 ${i+1} 段解讀正逆位`);
+      eq(entry.querySelector("h4").firstChild.textContent,c.zh,`第 ${i+1} 段牌名`);
+      eq(card.getAttribute("aria-label"),c.zh+(st.picks[i].rev?" 逆位":" 正位"),`第 ${i+1} 張 aria-label`);
+      eq(entry.querySelector("p.text").textContent,st.picks[i].rev?c.rvT:c.upT,`第 ${i+1} 段建議文字`);
+      assert(entry.querySelector(".hint").textContent.includes(W.Tarot.SPREADS[key].pos[i].h),`第 ${i+1} 段位置意義`);
+    });
+    eq(errors.length,0,"JS 錯誤："+errors.join("；"));
+  });
+}
+
+test("抽滿後再點牌堆不會多抽",async()=>{
+  await load();
+  selectSpread("single");draw(1);
+  const rest=$$("#fan .fcard:not(.taken)");rest[0].click();rest[10].click();
+  eq($$("#board .card").length,1,"牌陣中的牌");
+  eq(state().picks.length,1,"picks");
+});
+
+test("同一張牌不能被抽兩次",async()=>{
+  await load();
+  const el=$$("#fan .fcard")[7];el.click();el.click();
+  eq(state().picks.length,1,"picks");
+});
+
+test("逐張翻開：每翻一張就多一段解讀，全部翻開後才出現整體訊息與複製按鈕",async()=>{
+  await load();
+  draw(3);
+  const cards=$$("#board .card");
+  assert($("#readingSec").hidden,"翻牌前解讀區應隱藏");
+  cards[2].click();
+  assert(!$("#readingSec").hidden,"翻第 1 張後解讀區應出現");
+  eq($$("#reading .entry").length,1,"翻 1 張後的解讀段數");
+  assert($("#entry-2"),"應顯示剛翻開那張（位置 3）的解讀");
+  assert($("#reading .summary.pending .progress").textContent.includes("1 / 3"),"整體訊息應顯示進度 1 / 3");
+  assert($("#readingActions").hidden,"未全部翻開前不應出現複製／重新占卜");
+  assert(/已翻開\s*1\s*\/\s*3/.test($("#status").textContent),"狀態列應顯示已翻開 1 / 3");
+  cards[0].click();
+  eq($$("#reading .entry").length,2,"翻 2 張後的解讀段數");
+  eq($$("#reading .entry").map(e=>e.id).join(","),"entry-0,entry-2","解讀應依位置順序排列");
+  await sleep(900);
+  assert($("#reading .summary.pending"),"翻 2 張時整體訊息仍未產生");
+  eq($$("#reading .summary p.line").length,0,"整體訊息內容");
+  cards[1].dispatchEvent(new W.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+  eq($$("#reading .entry").map(e=>e.id).join(","),"entry-0,entry-1,entry-2","三段依位置順序");
+  await waitFor(readingDone,"整體訊息出現");
+  assert($$("#reading .summary p.line").length>=1,"整體訊息內容");
+  eq($$("#reading .summary .progress").length,0,"進度文字應移除");
+  assert(/所有牌已翻開/.test($("#status").textContent),"狀態列");
+  cards[1].click();
+  await sleep(50);
+  assert($("#entry-1"),"點已翻開的牌對應解讀存在");
+});
+
+test("凱爾特十字：第 2 張橫放（rotate 90°）壓在第 1 張上",async()=>{
+  await load();
+  selectSpread("celtic");
+  const [s1,s2]=$$("#board .slot");
+  assert(s2.classList.contains("cross"),"第 2 個牌位應為橫放");
+  const m=W.getComputedStyle(s2).transform;
+  assert(m&&m!=="none","第 2 個牌位應有旋轉");
+  const [a,b]=m.match(/matrix\(([^)]+)\)/)[1].split(",").map(Number);
+  assert(Math.abs(a)<1e-6&&Math.abs(b-1)<1e-6,"旋轉角度應為 90°");
+  eq(s1.style.gridColumn+"/"+s1.style.gridRow,s2.style.gridColumn+"/"+s2.style.gridRow,"兩張同一格");
+});
+
+test("關閉逆位：抽 10 張全部正位，整體訊息不評論正逆位",async()=>{
+  await load();
+  setReversals(false);
+  assert(state().deck.every(d=>!d.rev),"牌組應全部正位");
+  selectSpread("celtic");draw(10);
+  eq($$("#board .card.rev").length,0,"逆位牌");
+  await revealAndRead(10);
+  eq($$("#reading .orient.rv").length,0,"解讀中的逆位標籤");
+  assert(![...$$("#reading .summary p")].some(p=>/逆位|全部皆為正位/.test(p.textContent)),"整體訊息不應評論正逆位");
+});
+
+test("抽牌後切換逆位開關不會改變已抽的牌",async()=>{
+  await load();
+  draw(1);
+  const before=JSON.stringify(state().deck);
+  setReversals(false);
+  eq(JSON.stringify(state().deck),before,"牌組");
+});
+
+test("中途切換牌陣：清空牌陣、牌回到牌堆、狀態更新",async()=>{
+  await load();
+  draw(2);
+  selectSpread("choice");
+  eq($$("#board .card").length,0,"牌陣中的牌");
+  eq($$("#fan .fcard.taken").length,0,"被拿走的牌");
+  eq($$("#board .slot").length,5,"牌位");
+  assert(/還需要\s*5\s*張/.test($("#status").textContent),"狀態列");
+});
+
+test("翻牌中途切換牌陣，排程中的解讀不會出現（避免顯示舊結果）",async()=>{
+  await load();
+  draw(3);
+  $("#revealAll").click();
+  await sleep(100);
+  selectSpread("single");
+  await sleep(1800);
+  assert($("#readingSec").hidden,"解讀區應保持隱藏");
+  eq($$("#reading .entry").length,0,"不應殘留舊的解讀段落");
+  eq($$("#board .card").length,0,"牌陣中的牌");
+});
+
+test("重新洗牌：牌序改變、牌堆仍為 78 張，洗牌中點牌無效",async()=>{
+  await load();
+  const before=state().deck.map(d=>d.i).join(",");
+  $("#shuffle").click();
+  assert(/洗牌中/.test($("#status").textContent),"狀態列應顯示洗牌中");
+  $$("#fan .fcard")[3].click();
+  eq(state().picks.length,0,"洗牌中不應抽到牌");
+  await waitFor(()=>!state().busy,"洗牌結束");
+  eq($$("#fan .fcard").length,78,"牌堆數量");
+  assert(state().deck.map(d=>d.i).join(",")!==before,"牌序應改變");
+  draw(1);
+  eq(state().picks.length,1,"洗牌後可以抽牌");
+});
+
+test("重新占卜：隱藏解讀、清空牌陣、重新洗牌",async()=>{
+  await load();
+  selectSpread("single");draw(1);await revealAndRead(1);
+  $("#again").click();
+  assert($("#readingSec").hidden,"解讀區應隱藏");
+  eq($$("#board .card").length,0,"牌陣中的牌");
+  await waitFor(()=>!state().busy,"洗牌結束");
+  assert(/還需要\s*1\s*張/.test($("#status").textContent),"狀態列");
+});
+
+test("複製解讀：成功顯示「已複製」，或退回手動複製文字框",async()=>{
+  await load();
+  selectSpread("three");draw(3);await revealAndRead(3);
+  $("#copy").click();
+  await waitFor(()=>$("#copied").textContent,"複製結果",3000);
+  const msg=$("#copied").textContent;
+  assert(msg==="已複製"||msg==="請手動複製下方文字","複製訊息");
+  if(msg!=="已複製"){
+    const ta=$("#copyFallback");
+    assert(!ta.hidden,"備用文字框應顯示");
+    assert(ta.value.startsWith("【夜航塔羅｜時間之流】"),"備用文字內容");
+  }
+});
+
+test("問題文字以純文字顯示（不會被當成 HTML 執行）",async()=>{
+  await load();
+  $("#question").value='<img src=x onerror="window.__xss=1">測試';
+  selectSpread("single");draw(1);await revealAndRead(1);
+  await sleep(100);
+  eq($$("#reading img").length,0,"解讀區不應出現 img");
+  assert(!W.__xss,"不應執行注入腳本");
+  assert($("#reading .question").textContent.includes("<img"),"問題原文應顯示");
+});
+
+test("問題留空：整體訊息不顯示問題列",async()=>{
+  await load();
+  $("#question").value="   ";
+  selectSpread("single");draw(1);await revealAndRead(1);
+  eq($$("#reading .question").length,0,"問題列");
+});
+
+test("手機寬度 375px：無水平捲動，扇形牌不超出畫面",async()=>{
+  await load(375);
+  await sleep(300);
+  assert(D.documentElement.scrollWidth<=D.documentElement.clientWidth+1,`頁面寬 ${D.documentElement.scrollWidth} > ${D.documentElement.clientWidth}`);
+  selectSpread("celtic");draw(10);await revealAndRead(10);
+  await sleep(300);
+  assert(D.documentElement.scrollWidth<=D.documentElement.clientWidth+1,"凱爾特十字解讀後仍無水平捲動");
+});
+
+test("鍵盤操作：扇形牌是 button，牌陣中的牌可用 Enter／空白鍵翻開",async()=>{
+  await load();
+  const f=$$("#fan .fcard")[0];
+  eq(f.tagName,"BUTTON","扇形牌元素");
+  f.focus();f.click();
+  const card=$("#board .card");
+  eq(card.getAttribute("tabindex"),"0","牌可聚焦");
+  card.dispatchEvent(new W.KeyboardEvent("keydown",{key:" ",bubbles:true}));
+  assert(card.classList.contains("flipped"),"空白鍵應翻牌");
+});
+
+/* ---------- 執行器 ---------- */
+async function run(){
+  out.innerHTML="";sum.className="";sum.textContent="執行中……";
+  let pass=0;
+  for(const t of tests){
+    const li=document.createElement("li");li.textContent=t.name;out.appendChild(li);
+    try{await t.fn();li.className="ok";pass++}
+    catch(e){li.className="bad";const s=document.createElement("small");s.textContent=e.message;li.appendChild(s)}
+  }
+  const ok=pass===tests.length;
+  sum.className=ok?"ok":"bad";
+  sum.textContent=`${ok?"全部通過":"有測試失敗"}：${pass} / ${tests.length}`;
+  document.title=(ok?"PASS ":"FAIL ")+pass+"/"+tests.length;
+}
+document.getElementById("rerun").addEventListener("click",run);
+if(location.protocol==="file:"){
+  sum.className="bad";
+  sum.textContent="請用 http:// 開啟此頁（file:// 下瀏覽器禁止讀取 iframe）。在專案資料夾執行 python3 -m http.server 8000，再開啟 http://localhost:8000/tests/e2e.html";
+}else run();
+</script>
+</body>
+</html>

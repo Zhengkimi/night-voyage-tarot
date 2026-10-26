@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>夜航塔羅</title>
+<meta name="description" content="Rider–Waite 體系完整 78 張塔羅牌線上抽牌與解讀，單一 HTML 檔、無後端、無圖片。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500;700&display=swap">
+<style>
+/* Layout: one centered column — ritual flow from question → fan of 78 cards → spread board → reading. Single committed night palette. */
+:root{
+  color-scheme: dark;
+  --night:#13152e;
+  --panel:#1c1e40;
+  --line:#383a68;
+  --brass:#d1ab63;
+  --brass-dim:#8a7245;
+  --moon:#ece5d3;
+  --muted:#a7a4c4;
+  --parch:#f2e9d5;
+  --ink:#2b2547;
+  --rose:#e09a95;
+  --back-a:#2c2b5e;
+  --back-b:#181939;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-num:"Cormorant Garamond","Times New Roman",serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--night)}
+body{margin:0;background:var(--night);color:var(--moon);font-family:var(--f-body);font-size:15px;line-height:1.7;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+/* Header */
+header{padding-top:44px;display:grid;gap:10px;text-align:center;justify-items:center}
+.eyebrow{font-size:12px;letter-spacing:.22em;color:var(--brass);text-transform:uppercase}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(40px,8vw,68px);line-height:1.1;margin:0;letter-spacing:.12em;text-wrap:balance}
+h1 .num{font-family:var(--f-num);font-style:italic;font-weight:500;color:var(--brass);letter-spacing:0;font-size:.55em;vertical-align:.35em;margin-left:.2em}
+.lede{margin:0;color:var(--muted);max-width:34em;text-wrap:balance}
+
+/* Section label */
+.step{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.step .n{font-family:var(--f-num);font-style:italic;font-size:26px;color:var(--brass);line-height:1}
+.step h2{font-family:var(--f-display);font-weight:500;font-size:19px;margin:0;letter-spacing:.06em}
+.step .aside{margin-left:auto;font-size:13px;color:var(--muted)}
+
+/* Controls */
+.ritual{display:grid;grid-template-columns:1.1fr 1fr;gap:28px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.ritual > *{min-width:0}
+@media (max-width:720px){.ritual{grid-template-columns:1fr;padding:18px}}
+label.q{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em}
+textarea{width:100%;min-height:96px;resize:vertical;background:var(--night);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.6}
+textarea::placeholder{color:#76739a}
+.tip{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.spreads{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:0;margin:0;padding:0}
+.spreads legend{font-size:13px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em;padding:0}
+.spreads label{position:relative;display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--night);transition:border-color .2s}
+.spreads input{position:absolute;opacity:0;pointer-events:none}
+.spreads label:has(input:checked){border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+.spreads label:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:2px}
+.spreads b{font-family:var(--f-display);font-weight:500;font-size:15px}
+.spreads small{color:var(--muted);font-size:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;color:var(--muted)}
+.toggle input{accent-color:var(--brass);width:16px;height:16px}
+.btn{border:1px solid var(--brass);background:transparent;color:var(--brass);padding:9px 18px;border-radius:999px;cursor:pointer;letter-spacing:.08em;font-size:14px;transition:background .2s,color .2s}
+.btn:hover{background:var(--brass);color:var(--night)}
+.btn.solid{background:var(--brass);color:var(--night)}
+.btn.solid:hover{background:var(--moon);border-color:var(--moon)}
+
+/* Fan */
+.fan-wrap{position:relative}
+#fan{position:relative;width:100%;margin:0 auto}
+.fcard{position:absolute;padding:0;border-radius:6px;cursor:pointer;transform:rotate(var(--rot,0deg)) translateY(var(--lift,0px));
+  transition:transform .55s cubic-bezier(.2,.7,.2,1),opacity .4s;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.fcard:hover,.fcard:focus-visible{--lift:-18px}
+.fcard.taken{opacity:0;--lift:-70px;pointer-events:none}
+.fan-wrap.done .fcard,.fan-wrap.busy .fcard{cursor:default;pointer-events:none}
+.fan-wrap.done .fcard{filter:brightness(.55)}
+#status{text-align:center;color:var(--muted);font-size:14px;margin:6px 0 0;min-height:1.7em}
+#status b{color:var(--brass);font-weight:500}
+
+/* Card back */
+.back{background:
+   radial-gradient(circle at 50% 50%, var(--back-b) 0 21%, transparent 21.5%),
+   radial-gradient(circle, var(--brass-dim) 0 0.8px, transparent 1.3px) 0 0/7px 7px,
+   linear-gradient(160deg,var(--back-a),var(--back-b));
+  border:1px solid var(--brass-dim);border-radius:6px;overflow:hidden}
+.back::before{content:"";position:absolute;inset:7% 9%;border:1px solid var(--brass-dim);border-radius:3px}
+.back::after{content:"";position:absolute;left:50%;top:50%;width:30%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 68% 38%, var(--back-b) 0 44%, transparent 45%),radial-gradient(circle, var(--brass) 0 49%, transparent 50%)}
+
+/* Board */
+.board{display:grid;justify-content:center;align-items:start;justify-items:center;row-gap:14px;column-gap:calc(var(--cw)*.42);padding-block:8px}
+.board.single{--cw:clamp(130px,40vw,190px)}
+.board.three{--cw:clamp(86px,26vw,160px)}
+.board.choice{--cw:clamp(74px,24vw,132px)}
+.board.celtic{--cw:clamp(52px,15vw,104px)}
+.board{--ch:calc(var(--cw)*1.6)}
+.slot{width:var(--cw);display:grid;gap:6px;justify-items:center;position:relative}
+.slot .place{width:var(--cw);height:var(--ch);border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;
+  font-family:var(--f-num);font-style:italic;color:var(--line);font-size:calc(var(--cw)*.3);position:relative}
+.slot .lab{font-size:12px;color:var(--muted);text-align:center;line-height:1.35;letter-spacing:.04em;min-height:1.35em}
+.slot .lab i{font-family:var(--f-num);color:var(--brass);font-size:14px;margin-right:2px}
+.slot.cross{z-index:2;transform:rotate(90deg);transform-origin:50% calc(var(--ch)/2)}
+.slot.cross .lab{visibility:hidden}
+.slot.next .place{border-color:var(--brass);color:var(--brass)}
+
+.card{position:absolute;inset:0;perspective:900px;cursor:pointer;animation:land .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes land{from{transform:translateY(-40px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+.card .inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,.6,.2,1)}
+.card.flipped .inner{transform:rotateY(180deg)}
+.card .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.card .front{transform:rotateY(180deg);background:var(--parch);overflow:hidden}
+.card .front svg{display:block;width:100%;height:100%}
+.card.rev .front svg{transform:rotate(180deg)}
+.card:not(.flipped):hover .inner{transform:translateY(-4px)}
+.card.flipped.hl .face{box-shadow:0 0 0 2px var(--brass),0 4px 18px rgba(209,171,99,.4)}
+
+.board-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* Reading */
+#reading{display:grid;gap:18px}
+.summary{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;display:grid;gap:8px;scroll-margin-top:24px}
+.summary h3{font-family:var(--f-display);font-weight:500;margin:0;font-size:18px;letter-spacing:.06em;color:var(--brass)}
+.summary .question{margin:0;font-family:var(--f-display);font-size:17px}
+.summary p{margin:0;max-width:62ch}
+.entries{display:grid;gap:14px}
+.entry{display:grid;grid-template-columns:88px 1fr;gap:18px;padding:18px;border-top:1px solid var(--line);scroll-margin-top:24px;animation:rise .5s cubic-bezier(.2,.7,.2,1) .35s both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.summary .progress{color:var(--muted);font-size:14px}
+.summary .line{animation:rise .5s ease both}
+.entry > *{min-width:0}
+.entry .thumb{width:88px;aspect-ratio:10/16;border-radius:5px;overflow:hidden;background:var(--parch);max-width:100%}
+.entry .thumb svg{width:100%;height:100%;display:block}
+.entry .thumb.rev svg{transform:rotate(180deg)}
+.entry .pos{font-size:12px;letter-spacing:.14em;color:var(--brass)}
+.entry h4{font-family:var(--f-display);font-weight:700;font-size:21px;margin:2px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.orient{font-family:var(--f-body);font-weight:500;font-size:12px;padding:1px 9px;border-radius:999px;border:1px solid currentColor;letter-spacing:.08em}
+.orient.up{color:var(--brass)}
+.orient.rv{color:var(--rose)}
+.entry .en{font-family:var(--f-num);font-style:italic;color:var(--muted);font-size:16px;margin:0}
+.kw{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0;margin:8px 0}
+.kw li{font-size:13px;padding:2px 10px;border-radius:4px;background:rgba(209,171,99,.12);color:var(--moon)}
+.entry .hint{font-size:13px;color:var(--muted);margin:0 0 4px}
+.entry p.text{margin:0;max-width:62ch}
+@media (max-width:520px){.entry{grid-template-columns:64px 1fr;gap:14px;padding:14px 0}.entry .thumb{width:64px}}
+.reading-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+#copied{font-size:13px;color:var(--brass);align-self:center}
+#copyFallback{margin-top:12px;min-height:180px}
+
+footer{text-align:center;color:#6f6c92;font-size:12px;letter-spacing:.06em}
+
+@media (prefers-reduced-motion: reduce){
+  .fcard,.card .inner{transition:none}
+  .card,.entry,.summary .line{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Rider–Waite 體系 · 完整 78 張牌</div>
+    <h1>夜航塔羅<span class="num">lxxviii</span></h1>
+    <p class="lede">靜下心，默想你的問題。選好牌陣後，從扇形牌堆中憑直覺抽牌，再一張張翻開，閱讀牌面給你的訊息。</p>
+  </header>
+
+  <section aria-labelledby="s1">
+    <div class="step"><span class="n">i</span><h2 id="s1">設定占卜</h2></div>
+    <div class="ritual">
+      <div>
+        <label class="q" for="question">你想詢問的問題（可留空）</label>
+        <textarea id="question" maxlength="200" placeholder="例如：接下來三個月，我在工作上需要注意什麼？">接下來三個月，我在工作上需要注意什麼？</textarea>
+        <p class="tip">用開放式、聚焦在自己的問法，例如「我能怎麼做」，會比是非題得到更有用的解讀。</p>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="reversals" checked> 包含逆位牌</label>
+        </div>
+      </div>
+      <fieldset class="spreads" id="spreads">
+        <legend>牌陣</legend>
+        <label><input type="radio" name="spread" value="single" id="sp-single"><b>今日指引</b><small>1 張 · 單一訊息</small></label>
+        <label><input type="radio" name="spread" value="three" id="sp-three" checked><b>時間之流</b><small>3 張 · 過去 現在 未來</small></label>
+        <label><input type="radio" name="spread" value="choice" id="sp-choice"><b>二選一</b><small>5 張 · 比較兩條路</small></label>
+        <label><input type="radio" name="spread" value="celtic" id="sp-celtic"><b>凱爾特十字</b><small>10 張 · 全面剖析</small></label>
+      </fieldset>
+    </div>
+  </section>
+
+  <section aria-labelledby="s2">
+    <div class="step"><span class="n">ii</span><h2 id="s2">洗牌與抽牌</h2><button class="btn aside" id="shuffle" type="button">重新洗牌</button></div>
+    <div class="fan-wrap" id="fanWrap">
+      <div id="fan" role="group" aria-label="牌堆"></div>
+      <p id="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section aria-labelledby="s3">
+    <div class="step"><span class="n">iii</span><h2 id="s3">牌陣</h2><span class="aside" id="spreadName"></span></div>
+    <div class="board" id="board"></div>
+    <div class="board-actions">
+      <button class="btn solid" id="revealAll" type="button" hidden>全部翻開</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="s4" id="readingSec" hidden>
+    <div class="step"><span class="n">iv</span><h2 id="s4">解讀</h2></div>
+    <div id="reading"></div>
+    <div class="reading-actions" id="readingActions" hidden>
+      <button class="btn" id="copy" type="button">複製解讀文字</button>
+      <button class="btn solid" id="again" type="button">重新占卜</button>
+      <span id="copied" aria-live="polite"></span>
+    </div>
+    <textarea id="copyFallback" hidden readonly aria-label="解讀文字"></textarea>
+  </section>
+
+  <footer>塔羅是自我覺察的鏡子，不是命定的判決。牌義供參考，最終的選擇在你手中。<br>健康、法律、財務與心理危機等重大問題，請諮詢專業人士。</footer>
+</div>
+
+<!--
+  核心層（資料 + 渲染 + 純邏輯），不碰 DOM。
+  掛在 globalThis.Tarot，供下方介面層與 tests/ 的自動測試共用。
+-->
+<script id="tarot-core">
+(function(root){
+"use strict";
+
+/* ---------- 資料層：大阿爾克那 ----------
+   [中文名, 英文名, 正位關鍵字, 逆位關鍵字, 正位建議, 逆位建議] */
+const MAJORS = [
+ ["愚者","The Fool","新的開始、自由、冒險、純真","魯莽、輕率、冒不必要的險","帶著好奇心跨出第一步，不必等到一切準備完美。","衝動之前先看清腳下，冒險也需要基本的準備。"],
+ ["魔術師","The Magician","創造力、行動、資源齊備","操控、才能未發揮、欺騙","你已擁有所需的資源，現在是把想法化為行動的時刻。","檢視自己是否分散心力，也留意有人言過其實。"],
+ ["女祭司","The High Priestess","直覺、潛意識、神秘","忽略直覺、秘密、隱藏的議題","安靜下來聆聽內在的聲音，答案不在外界。","你可能刻意忽略了某種直覺，或有尚未說出口的事。"],
+ ["皇后","The Empress","豐盛、滋養、創造、母性","依賴、創意受阻、過度保護","允許自己享受與付出，被滋養的事物會自然成長。","照顧別人之前，先把能量還給自己。"],
+ ["皇帝","The Emperor","權威、結構、秩序","控制欲、僵化、缺乏紀律","建立規則與結構，以穩定的態度掌握局面。","控制得太緊反而失去支持，試著保留彈性。"],
+ ["教皇","The Hierophant","傳統、信仰、指引","打破常規、叛逆、質疑權威","向經驗豐富的人或既有體制尋求指引。","舊規則已不適用，你可以走出屬於自己的路。"],
+ ["戀人","The Lovers","愛、和諧、價值選擇","失衡、價值衝突、錯誤選擇","依照內心真正重視的價值做出選擇。","關係或抉擇出現失衡，坦誠面對自己的需要。"],
+ ["戰車","The Chariot","意志、勝利、掌控方向","失控、方向不明、挫敗","集中意志、握緊方向，持續前進就能贏得局面。","先停下來確認方向，別讓各方拉扯耗盡力氣。"],
+ ["力量","Strength","勇氣、耐心、溫柔的力量","自我懷疑、軟弱、情緒失控","以溫柔與耐心面對困難，比硬碰硬更有力量。","你比自己以為的更堅強，別讓懷疑掌控情緒。"],
+ ["隱者","The Hermit","內省、獨處、尋找真理","孤立、逃避、迷失","給自己一段獨處的時間，向內尋找答案。","獨處過久可能變成孤立，試著重新與人連結。"],
+ ["命運之輪","Wheel of Fortune","轉機、循環、命運","厄運、抗拒改變、失控","局勢正在轉動，順勢把握出現的機會。","低潮也是循環的一部分，接受變化才能翻轉。"],
+ ["正義","Justice","公平、真相、因果","不公、逃避責任、偏見","誠實面對事實，你的選擇會帶來相應的結果。","留意不公平的對待，也檢視自己是否逃避責任。"],
+ ["吊人","The Hanged Man","暫停、換個角度、臣服","拖延、無謂的犧牲、停滯","暫時停下腳步，換一個角度看，局面就會不同。","無止境的等待並不是臣服，是時候做決定了。"],
+ ["死神","Death","結束、轉化、新生","抗拒改變、停滯、無法放手","讓該結束的結束，空出位置給新的開始。","緊抓不放只會延長痛苦，試著鬆開手。"],
+ ["節制","Temperance","平衡、調和、耐心","失衡、過度、急躁","在兩端之間找到中庸，慢慢調和就會順利。","生活某處過度了，回到適合自己的節奏。"],
+ ["惡魔","The Devil","束縛、慾望、執著","解脫、覺醒、打破枷鎖","看清是什麼在束縛你，覺察本身就是鬆綁的開始。","你正逐步掙脫舊有的依附，請持續下去。"],
+ ["高塔","The Tower","劇變、崩解、真相揭露","逃過一劫、延遲的危機、害怕改變","突來的變動會拆掉不穩固的基礎，讓真相浮現。","你也許暫時避開了衝擊，但根本問題仍需處理。"],
+ ["星星","The Star","希望、療癒、靈感","失望、失去信心、沮喪","保持希望，療癒正在發生，未來值得期待。","暫時失去信心沒關係，從小事重新點亮希望。"],
+ ["月亮","The Moon","幻象、不安、潛意識","釋放恐懼、真相大白、走出迷惘","事情未明朗前別急著下結論，留意恐懼造成的錯覺。","迷霧正在散去，你會逐漸看清真相。"],
+ ["太陽","The Sun","喜悅、成功、活力","暫時受挫、過度樂觀、熱情減退","大方展現自己，成功與喜悅就在眼前。","好事仍會到來，只是比預期慢一些。"],
+ ["審判","Judgement","覺醒、重生、召喚","自我懷疑、拒絕召喚、悔恨","回應內心的召喚，這是蛻變與重新出發的時刻。","別讓過去的悔恨阻止你前進，先原諒自己。"],
+ ["世界","The World","完成、圓滿、整合","未竟之事、缺乏結果、延遲","一個階段圓滿完成，準備迎接更大的舞台。","還差最後一步，回頭把未竟之事處理好。"]
+];
+
+/* ---------- 資料層：小阿爾克那 ----------
+   m：王牌～十、侍者、騎士、王后、國王，共 14 筆
+   每筆 [正位關鍵字, 逆位關鍵字, 正位建議, 逆位建議]，與大阿爾克那深度一致 */
+const SUITS = [
+ {key:"wands",zh:"權杖",en:"Wands",el:"火",domain:"行動、熱情與事業企圖",color:"#a94b2a",m:[
+  ["新的熱情、靈感、開創","延遲、缺乏動力、計畫受阻","一股新的熱情正被點燃，抓住靈感立刻動手，火花需要行動才會成火。","熱情還沒找到出口，先釐清真正想做的事，別勉強自己硬撐。"],
+  ["規劃未來、做出抉擇、拓展視野","害怕未知、計畫不周、猶豫不前","世界已經握在手中，把計畫攤開，做出走向更大舞台的決定。","對未知的害怕讓你停在原地，把計畫拆小，先跨出一步試試。"],
+  ["擴張、遠見、等待成果","進展遲緩、挫折、目光短淺","你的船已經出航，保持遠見、耐心等待，成果正從遠方駛來。","進展比預期慢，檢視計畫是否忽略了細節，調整後再出發。"],
+  ["慶祝、和諧、安定的根基","不穩定、過渡期、缺乏歸屬","值得慶祝的里程碑到了，與身邊的人分享喜悅，穩固彼此的根基。","環境正在變動、歸屬感動搖，先照顧好內在的安定。"],
+  ["競爭、衝突、意見分歧","避免衝突、內在矛盾、和解","意見交鋒是成長的一部分，把競爭當成切磋，而不是戰爭。","你刻意迴避衝突，但壓下的分歧不會消失，找機會好好談開。"],
+  ["勝利、公眾認可、自信","自負、失去肯定、名不副實","努力正獲得肯定，大方接受掌聲，也記得感謝一路支持你的人。","別把自我價值寄託在他人的讚美上，也別為了名聲忘了初衷。"],
+  ["堅守立場、挑戰、防衛","疲於應付、退讓、被壓垮","你站在有利的高處，相信自己的判斷，守住立場不必退讓。","四面應戰讓你疲憊，選擇真正重要的戰場，其餘的就放手。"],
+  ["快速進展、消息、行動","延誤、受挫、步調紊亂","事情即將快速推進、消息接連到來，保持專注，順勢而行。","節奏被打亂或訊息延誤，先穩住步調，別急著衝刺。"],
+  ["韌性、堅持、最後防線","精疲力竭、多疑、固執","你已撐過大半，傷痕是經驗的證明，再堅持一下就能抵達。","長期防備讓你精疲力竭，放下多疑，允許別人伸出援手。"],
+  ["負擔、責任過重、壓力","卸下重擔、學會分擔、瀕臨崩潰","你扛著太多責任，檢視哪些真的屬於你，學會分配與求助。","重擔已到臨界點，是卸下不屬於你的負擔、重新排序的時候了。"],
+  ["探索、熱忱、好消息","三分鐘熱度、缺乏方向、壞消息","帶著好奇心探索新領域，一個好消息或新點子正在敲門。","熱度來得快去得也快，先確認方向，再決定要投入多少。"],
+  ["冒險、衝勁、熱情行動","魯莽、急躁、半途而廢","以熱情和衝勁採取行動，大膽出發，讓勇氣帶你前進。","急躁會讓你半途而廢，衝出去之前先想好要往哪裡落腳。"],
+  ["自信、魅力、獨立","嫉妒、自我懷疑、強勢","溫暖而堅定地做自己，你的自信與魅力自然會吸引支持。","內在的不安正轉成嫉妒或強勢，先回頭肯定自己的價值。"],
+  ["領導力、遠見、開創精神","專橫、衝動、期望過高","以遠見帶領方向、勇於承擔並激勵他人，這是你發揮領導力的時刻。","掌控過度或期望過高會讓人卻步，給團隊和自己都留些空間。"]]},
+ {key:"cups",zh:"聖杯",en:"Cups",el:"水",domain:"情感、關係與直覺",color:"#2c6688",m:[
+  ["新的情感、愛、直覺湧現","情感壓抑、空虛、自我封閉","敞開心胸迎接新的情感，愛與直覺正在滿溢，讓它自然流動。","你把感受封鎖起來了，先溫柔地承認自己真正的需要。"],
+  ["結合、互相吸引、夥伴關係","失衡、分離、溝通不良","一段相互吸引、彼此尊重的連結正在形成，真誠交流就能加深。","關係出現失衡，說出真實的感受，比默默忍耐更能修復。"],
+  ["友誼、慶祝、團聚","過度放縱、流言、疏離","和朋友一起慶祝吧，分享會讓快樂加倍，人際支持就是你的資源。","熱鬧背後可能藏著流言或過度放縱，回到真正重要的關係。"],
+  ["冷漠、沉思、錯失機會","重新覺察、接受新機會、走出低潮","你對眼前的一切提不起勁，別讓冷漠錯過身旁遞來的新機會。","你正從低潮中醒來，願意重新看見生活裡的可能。"],
+  ["失落、悲傷、遺憾","接受、釋懷、向前看","允許自己為失去而難過，但別忘了身後還有兩只立著的杯子。","你正在接受過去、慢慢釋懷，準備把目光轉回前方。"],
+  ["懷舊、童真、舊情","活在過去、無法放下、成長","溫暖的回憶與舊日情誼帶來安慰，從過去汲取純真的力量。","過去再美好也回不去了，帶著回憶的養分繼續成長。"],
+  ["幻想、選擇過多、迷惑","看清現實、做出決定、專注","選項太多、幻想太美，先分辨哪些真實可行，再做選擇。","迷霧正在散去，你逐漸看清現實，可以專注在一個目標上。"],
+  ["離開、尋找更深的意義、放下","害怕改變、徘徊不去、逃避","當某件事已無法滿足內心，勇敢轉身，去尋找更深的意義。","你知道該走卻遲遲不動，問問自己害怕失去的到底是什麼。"],
+  ["願望成真、滿足、享受","貪得無厭、空虛、自滿","願望即將實現，好好享受此刻的滿足，你值得這份快樂。","擁有很多卻仍覺空虛，回頭檢視自己真正渴望的是什麼。"],
+  ["家庭幸福、圓滿、和諧","家庭失和、價值觀衝突、理想破滅","家庭與關係迎來和諧圓滿，珍惜身邊愛你的人。","理想中的幸福畫面與現實有落差，坦誠溝通彼此的價值觀。"],
+  ["創意、溫柔的訊息、直覺","情緒化、不成熟、創意受阻","一則溫柔的訊息或創意靈感正在浮現，用孩子般的心去感受它。","情緒來得又急又亂，先安撫自己，別在激動時做決定。"],
+  ["浪漫、邀請、追隨內心","情緒反覆、不切實際、失望","跟隨內心的召喚，一份邀請或浪漫的提議可能正在前來。","美好的想像不等於現實，承諾之前先確認情感是否穩定。"],
+  ["同理心、溫柔、直覺敏銳","情緒依賴、過度犧牲、敏感脆弱","以同理心傾聽他人，也傾聽自己，此刻你的直覺特別敏銳。","過度承接別人的情緒會掏空你，記得為自己設下界線。"],
+  ["情緒成熟、包容、外交手腕","情緒操控、冷淡、壓抑感受","在情緒波動中保持平穩，以包容和智慧化解複雜的人際局面。","壓抑感受或用情緒左右他人都不是辦法，誠實面對內在。"]]},
+ {key:"swords",zh:"寶劍",en:"Swords",el:"風",domain:"思想、溝通與抉擇",color:"#4b5674",m:[
+  ["突破、清晰、真相","混亂、誤判、思緒不清","真相像一道光劃破迷霧，用清晰的思考做出突破性的決定。","思緒混亂容易誤判，先收集更多資訊，再下結論。"],
+  ["兩難、僵局、迴避抉擇","資訊過載、內心交戰、真相浮現","蒙住雙眼不會讓僵局自己解開，誠實面對兩個選項的代價。","資訊太多讓你內心交戰，但真相正在浮現，聽從它。"],
+  ["心碎、悲痛、分離","療癒、釋放痛苦、寬恕","心痛是真實的，允許自己悲傷，傷口要先被看見才會癒合。","最痛的時刻已經過去，試著寬恕，讓心慢慢復原。"],
+  ["休息、復原、沉思","焦躁不安、倦怠、重新出發","暫時退下戰場，好好休息與沉澱，恢復後才有力氣再出發。","休息夠了卻仍焦躁不安，是時候溫和地重新啟動。"],
+  ["衝突、輸贏、不擇手段","和解、放下怨恨、反省","贏了爭論卻可能失去人心，想清楚這場勝利值不值得。","放下怨恨與勝負心，主動和解，你會得到更多。"],
+  ["過渡、離開困境、前往平靜","無法前進、舊問題未解、抗拒改變","你正離開動盪、駛向平靜，過渡期雖然安靜，前方的水面會更穩。","舊問題還跟著你，不先處理，換了環境也很難真正前進。"],
+  ["策略、隱瞞、獨自行動","坦白、良心不安、被揭穿","此刻需要策略與謹慎，也檢視自己或他人是否有所隱瞞。","隱藏的事可能被揭穿，坦白面對比繼續掩飾更輕鬆。"],
+  ["受困、自我設限、無助","解脫、新的觀點、重拾力量","困住你的多半是自己的念頭，蒙眼布其實可以自己解開。","你開始看見出口，拿回力量，一步步走出限制。"],
+  ["焦慮、失眠、恐懼","走出陰霾、尋求協助、憂慮加深","深夜的焦慮放大了恐懼，把擔憂寫下來，多半沒有想像中可怕。","憂慮已到需要協助的程度，別獨自承受，向信任的人說出來。"],
+  ["結束、谷底、痛苦的終點","復原、重生、拒絕結束","最壞的情況已經到底，接下來只會往上，黎明就在地平線。","你正從谷底慢慢爬起，別再抗拒結束，讓它真正過去。"],
+  ["好奇、求知、警覺","流言、言語傷人、輕率","保持好奇與警覺，多觀察、多提問，資訊就是你的武器。","小心話說得太快，流言與輕率的言語會傷人也傷己。"],
+  ["果斷、直言、迅速行動","衝動、尖銳、不顧後果","果斷出擊、直言不諱，此刻速度與決心能打開局面。","衝得太快容易傷人，說話與行動之前多想一步後果。"],
+  ["獨立、洞察、清晰界線","冷酷、苛刻、過於防衛","以清晰的洞察劃下界線，誠實而不失溫度地表達自己。","過去的傷讓你變得苛刻、防衛，試著讓理性與同理並存。"],
+  ["理性、權威、公正","濫用權力、冷漠、操控","以理性和公正做出判斷，你的專業與原則就是權威。","權力一旦用來控制或打壓他人就失去正當性，回到公平。"]]},
+ {key:"pentacles",zh:"錢幣",en:"Pentacles",el:"土",domain:"金錢、工作與身體",color:"#6a7230",m:[
+  ["新機會、財富、實際成果","錯失機會、規劃不周","一個實際的新機會出現了，像一顆種子，好好播下就會長出成果。","機會可能從指縫溜走，先把規劃做紮實，再投入資源。"],
+  ["平衡、多工、適應變化","失衡、分身乏術、財務混亂","在多項任務之間保持彈性，像雜耍一樣靈活調度。","同時處理太多事讓你失衡，排出優先順序，放下一些。"],
+  ["團隊合作、技藝、學習","缺乏合作、品質不佳、不被重視","團隊合作與專業技藝正被看見，虛心交流能讓成果更好。","合作出現摩擦或品質打折，重新對齊目標與分工。"],
+  ["守成、保守、掌控","過度吝嗇、學會放手、財務不安","守住已有的資源是明智的，但別抓得太緊而失去流動。","過度緊握或對財務的不安在提醒你：適度放手，才接得住新的。"],
+  ["困頓、匱乏、孤立","復甦、獲得幫助、走出困境","困頓時別獨自在雪中徘徊，身旁其實有亮著燈的門可以敲。","最冷的時候正在過去，接受幫助，慢慢恢復元氣。"],
+  ["施與受、慷慨、分享","不對等、債務、有條件的給予","讓施與受保持平衡，你的慷慨會回流，也別羞於接受善意。","留意關係中不對等的付出，或附帶條件的幫助。"],
+  ["耐心、長期投資、評估","缺乏回報、不耐煩、方向錯誤","成果需要時間成熟，停下來評估方向，耐心是長期投資的關鍵。","付出遲遲沒有回報，先檢查方向是否錯了，而不只是不夠努力。"],
+  ["專注、精進技能、勤奮","敷衍、完美主義、缺乏熱忱","專注磨練技藝，每一次重複都在累積實力，勤奮會被看見。","敷衍或過度追求完美都會讓你停滯，找回對工作的熱忱。"],
+  ["獨立、富足、自我成就","過度工作、經濟依賴、表面風光","你靠自己的努力換來富足與獨立，好好享受這份成就。","表面風光背後可能是過度工作或依賴他人，檢視真正的安全感。"],
+  ["傳承、家族財富、長久穩定","家庭糾紛、財務損失、根基不穩","長久的穩定正在建立，你的努力會成為家人或後人的基石。","家族或財務的根基出現裂縫，處理糾紛，重整長期規劃。"],
+  ["新計畫、學習、踏實","拖延、缺乏進展、好高騖遠","以踏實的態度學習新技能，從一個小計畫開始扎根。","想得多、做得少，別好高騖遠，先完成手上的第一步。"],
+  ["穩定、負責、按部就班","停滯、過於保守、乏味","按部就班、負責到底，穩定的步伐終會走得最遠。","過度保守讓事情停滯，偶爾嘗試新方法才能突破。"],
+  ["務實、照顧、富足","忽略自己、工作與家庭失衡、物質化","務實地照顧自己與身邊的人，在工作與生活之間創造富足。","照顧了所有人卻忽略自己，或太在意物質，試著找回平衡。"],
+  ["財富、事業有成、可靠","貪婪、固執、物質至上","你的穩健與可靠帶來事業成就，善用資源創造長久價值。","對財富的執著讓你變得固執，記得金錢是工具而不是目的。"]]}
+];
+const RANK_ZH = ["王牌","二","三","四","五","六","七","八","九","十","侍者","騎士","王后","國王"];
+const RANK_EN = ["Ace","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Page","Knight","Queen","King"];
+/* 數字牌的數字主題，用於「重複數字」的整體分析 */
+const RANK_THEME = ["新的開始與潛能","平衡、選擇與夥伴","成長與合作","穩定與守成","衝突與變動","和諧與過渡","評估與考驗","行動與推進","接近完成","結束與圓滿"];
+const MAJOR_COLOR = "#5a3f84";
+
+/* 攤平成 78 張，之後一律以編號 0–77 取用 */
+const CARDS = [];
+MAJORS.forEach((m,i)=>CARDS.push({major:true,n:i,zh:m[0],en:m[1],up:m[2],rv:m[3],upT:m[4],rvT:m[5],color:MAJOR_COLOR}));
+SUITS.forEach(s=>s.m.forEach((mm,r)=>CARDS.push({major:false,suit:s,r,zh:s.zh+RANK_ZH[r],en:RANK_EN[r]+" of "+s.en,up:mm[0],rv:mm[1],upT:mm[2],rvT:mm[3],color:s.color})));
+
+function roman(n){if(n===0)return "0";const t=[[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let s="";for(const [v,c] of t){while(n>=v){s+=c;n-=v}}return s}
+
+/* ---------- 渲染層：牌面 SVG ---------- */
+function starPts(r,ri){const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?ri:r;p.push((Math.cos(a)*rr).toFixed(2)+","+(Math.sin(a)*rr).toFixed(2))}return p.join(" ")}
+const STAR5 = starPts(6.6,2.7);
+function suitGlyph(key,c){
+  switch(key){
+    case "wands": return `<rect x="-1.6" y="-10" width="3.2" height="20" rx="1.6" fill="${c}"/><ellipse cx="3.6" cy="-4" rx="2.8" ry="1.2" transform="rotate(-30 3.6 -4)" fill="${c}"/><ellipse cx="-3.6" cy="2.5" rx="2.8" ry="1.2" transform="rotate(30 -3.6 2.5)" fill="${c}"/>`;
+    case "cups": return `<path d="M-7,-9 H7 Q7,0 1.5,2 V6 H5 V9 H-5 V6 H-1.5 V2 Q-7,0 -7,-9 Z" fill="${c}"/>`;
+    case "swords": return `<polygon points="0,-10.5 1.7,-7.5 1.7,4.6 -1.7,4.6 -1.7,-7.5" fill="${c}"/><rect x="-5.5" y="4.6" width="11" height="1.9" rx=".9" fill="${c}"/><rect x="-1" y="6.5" width="2" height="3.6" fill="${c}"/>`;
+    default: return `<circle r="9" fill="none" stroke="${c}" stroke-width="1.6"/><polygon points="${STAR5}" fill="${c}"/>`;
+  }
+}
+/* 點數牌：依點數排列花色符號（座標以 100×160 牌面為準） */
+const PIPS = {
+ 1:[[50,74]],2:[[50,45],[50,103]],3:[[50,40],[50,74],[50,108]],4:[[32,45],[68,45],[32,103],[68,103]],
+ 5:[[32,45],[68,45],[50,74],[32,103],[68,103]],6:[[32,40],[68,40],[32,74],[68,74],[32,108],[68,108]],
+ 7:[[32,40],[68,40],[50,57],[32,74],[68,74],[32,108],[68,108]],8:[[32,40],[68,40],[50,57],[32,74],[68,74],[50,91],[32,108],[68,108]],
+ 9:[[32,37],[68,37],[32,61],[68,61],[50,74],[32,87],[68,87],[32,111],[68,111]],
+ 10:[[32,35],[68,35],[50,48],[32,62],[68,62],[32,86],[68,86],[50,100],[32,113],[68,113]]
+};
+function faceSVG(c){
+  const col=c.color, ink="#2b2547";
+  let top, art="";
+  if(c.major){
+    const rn=roman(c.n);
+    top=rn;
+    let rays="";
+    for(let i=0;i<16;i++){const a=i*Math.PI/8,r1=i%2?33:31,r2=i%2?37:42;rays+=`<line x1="${(50+Math.cos(a)*r1).toFixed(1)}" y1="${(74+Math.sin(a)*r1).toFixed(1)}" x2="${(50+Math.cos(a)*r2).toFixed(1)}" y2="${(74+Math.sin(a)*r2).toFixed(1)}" stroke="${col}" stroke-width="1.2" stroke-linecap="round"/>`}
+    art=`${rays}<circle cx="50" cy="74" r="28" fill="${col}" fill-opacity=".09" stroke="${col}" stroke-width="1.3"/><circle cx="50" cy="74" r="23.5" fill="none" stroke="${col}" stroke-width=".5"/>
+      <text x="50" y="${rn.length>3?81:84}" text-anchor="middle" fill="${col}" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;font-size:${rn.length>3?20:28}px">${rn}</text>
+      <g class="star" transform="translate(18 34) scale(.45)"><polygon points="${STAR5}" fill="${col}"/></g><g class="star" transform="translate(82 114) scale(.45)"><polygon points="${STAR5}" fill="${col}"/></g>`;
+  } else if(c.r<10){
+    top=RANK_ZH[c.r];
+    const n=c.r+1, k=n===1?2.4:(n>=9?0.82:0.95);
+    art=PIPS[n].map(([x,y])=>`<g class="pip" transform="translate(${x} ${y}) scale(${k})">${suitGlyph(c.suit.key,col)}</g>`).join("");
+    if(n===1) art=`<circle cx="50" cy="74" r="34" fill="${col}" fill-opacity=".07"/>`+art;
+  } else {
+    top=RANK_ZH[c.r];
+    /* 宮廷牌身分記號：侍者圓點、騎士箭形、王后新月、國王皇冠 */
+    const mark = c.r===13?`<path d="M36,46 L40,36 L45,43 L50,33 L55,43 L60,36 L64,46 Z" fill="${col}"/>`:
+                 c.r===12?`<path d="M44,34 A10,10 0 1 0 56,47 A8,8 0 1 1 44,34 Z" fill="${col}"/>`:
+                 c.r===11?`<path d="M38,46 L50,36 L62,46" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`:
+                 `<circle cx="50" cy="41" r="3.4" fill="${col}"/>`;
+    art=`<g class="mark">${mark}</g><g class="pip" transform="translate(50 82) scale(2)">${suitGlyph(c.suit.key,col)}</g>`;
+  }
+  return `<svg viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect width="100" height="160" fill="#f2e9d5"/>
+    <rect x="4" y="4" width="92" height="152" rx="3" fill="none" stroke="${col}" stroke-width="1"/>
+    <rect x="6.5" y="6.5" width="87" height="147" rx="2" fill="none" stroke="${col}" stroke-width=".4"/>
+    <text x="50" y="20" text-anchor="middle" fill="${ink}" style="font-family:${c.major?"'Cormorant Garamond',serif;font-style:italic;font-size:12px":"'Noto Serif TC',serif;font-size:9px"}">${top}</text>
+    ${art}
+    <rect x="10" y="128" width="80" height="22" rx="2" fill="${col}" fill-opacity=".1"/>
+    <text x="50" y="141" text-anchor="middle" fill="${ink}" style="font-family:'Noto Serif TC',serif;font-weight:700;font-size:${c.zh.length>4?9:10.5}px">${c.zh}</text>
+    <text x="50" y="148.2" text-anchor="middle" fill="${ink}" fill-opacity=".7" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:5.6px">${c.en}</text>
+  </svg>`;
+}
+
+/* ---------- 資料層：牌陣 ----------
+   l 位置名稱、h 位置意義、c/r 格線欄列（從 1 起算）、x 是否橫放 */
+const SPREADS = {
+  single:{name:"今日指引",cols:1,rows:1,pos:[{l:"指引",h:"此刻你最需要知道的訊息",c:1,r:1}]},
+  three:{name:"時間之流",cols:3,rows:1,pos:[{l:"過去",h:"影響現況的根源與經驗",c:1,r:1},{l:"現在",h:"你目前所處的狀態",c:2,r:1},{l:"未來",h:"依照現有方向的可能發展",c:3,r:1}]},
+  choice:{name:"二選一",cols:3,rows:3,pos:[
+    {l:"現況",h:"你此刻面對抉擇時的心境",c:2,r:3},
+    {l:"選擇 A 的過程",h:"走上 A 路時會經歷的事",c:1,r:2},{l:"選擇 A 的結果",h:"A 路最可能帶來的結果",c:1,r:1},
+    {l:"選擇 B 的過程",h:"走上 B 路時會經歷的事",c:3,r:2},{l:"選擇 B 的結果",h:"B 路最可能帶來的結果",c:3,r:1}]},
+  celtic:{name:"凱爾特十字",cols:4,rows:4,pos:[
+    {l:"現況",h:"問題的核心與目前處境",c:2,r:2},{l:"阻礙",h:"橫在你面前的挑戰",c:2,r:2,x:true},
+    {l:"根基",h:"潛意識與事情的根源",c:2,r:3},{l:"過去",h:"正在離去的影響",c:1,r:2},
+    {l:"目標",h:"你意識上的期望與可能的最好結果",c:2,r:1},{l:"近未來",h:"即將發生的事",c:3,r:2},
+    {l:"自我",h:"你面對這件事的態度",c:4,r:4},{l:"環境",h:"周遭的人與外在影響",c:4,r:3},
+    {l:"希望與恐懼",h:"內心期待或擔憂的事",c:4,r:2},{l:"結果",h:"綜合以上的最終走向",c:4,r:1}]}
+};
+
+/* ---------- 洗牌 ----------
+   randInt：crypto.getRandomValues + 拒絕取樣，消除取餘數造成的微小偏差
+   shuffle：Fisher–Yates，每種牌序機率相等；正逆位各 50% */
+function randInt(n){
+  const c=root.crypto;
+  if(c&&c.getRandomValues){
+    const lim=Math.floor(0x100000000/n)*n, a=new Uint32Array(1);
+    do{c.getRandomValues(a)}while(a[0]>=lim);
+    return a[0]%n;
+  }
+  return Math.floor(Math.random()*n);
+}
+function shuffle(reversals,rnd=randInt){
+  const a=CARDS.map((_,i)=>i);
+  for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}
+  return a.map(i=>({i,rev:!!reversals&&rnd(2)===1}));
+}
+
+/* ---------- 解讀 ---------- */
+function interp(c,rev){return rev?c.rvT:c.upT}
+
+/* 依規則分析整個牌陣：大牌比例、主導花色、重複數字、宮廷牌、逆位數量
+   picks：[{i,rev}]；reversals：本次是否啟用逆位（關閉時不評論正逆位） */
+function summaryLines(picks,reversals=true){
+  const n=picks.length, cards=picks.map(p=>CARDS[p.i]);
+  const majors=cards.filter(c=>c.major).length, revs=picks.filter(p=>p.rev).length;
+  const lines=[];
+  if(n===0) return lines;
+  if(n===1){
+    const c=cards[0], r=picks[0].rev;
+    lines.push(c.major?"抽到大阿爾克那，代表這是此刻較深層、值得認真面對的人生課題。":`這張牌屬於${c.suit.zh}（${c.suit.el}元素），提醒你今天聚焦於${c.suit.domain}。`);
+    if(reversals) lines.push(r?"牌以逆位出現，能量正在受阻或需要向內整理，放慢腳步會更好。":"牌以正位出現，能量順暢，可以順著它的建議行動。");
+    return lines;
+  }
+  if(majors/n>=0.5) lines.push(`${n} 張牌中有 ${majors} 張大阿爾克那。這件事牽涉重要的人生課題，外在的大趨勢影響較深，順勢而為比強求更重要。`);
+  else if(majors===0) lines.push("牌陣全由小阿爾克那組成。事情多落在日常層面，你能透過具體行動直接調整走向。");
+  else lines.push(`牌陣以小阿爾克那為主（大阿爾克那 ${majors} 張）。多數狀況可以靠自己的行動改變，大牌所在的位置則是需要特別留意的關鍵。`);
+
+  const cnt={};cards.forEach(c=>{if(!c.major)cnt[c.suit.key]=(cnt[c.suit.key]||0)+1});
+  const ent=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  if(ent.length&&ent[0][1]>=2&&(ent.length===1||ent[0][1]>ent[1][1])){
+    const s=SUITS.find(x=>x.key===ent[0][0]);
+    lines.push(`${s.zh}牌出現 ${ent[0][1]} 張，${s.el}元素最強，重心落在${s.domain}。`);
+  }
+
+  const rk={};cards.forEach(c=>{if(!c.major&&c.r<10)rk[c.r]=(rk[c.r]||0)+1});
+  Object.entries(rk).filter(([,v])=>v>=2).sort((a,b)=>b[1]-a[1]||a[0]-b[0])
+    .forEach(([r,v])=>lines.push(`出現 ${v} 張「${RANK_ZH[r]}」，數字主題「${RANK_THEME[r]}」在這次占卜中被特別強調。`));
+
+  const courts=cards.filter(c=>!c.major&&c.r>=10).length;
+  if(courts>=2) lines.push(`宮廷牌有 ${courts} 張，它們可能代表參與其中的人，也可能是你需要展現的特質。`);
+
+  if(reversals){
+    if(revs===0) lines.push("全部皆為正位，能量流動順暢，是適合積極推進的時機。");
+    else if(revs/n>0.5) lines.push(`逆位有 ${revs} 張，超過半數。能量受阻或轉向內在，宜先整理想法與情緒，再決定下一步。`);
+    else lines.push(`逆位 ${revs} 張，提示其中有幾個環節需要調整或重新檢視。`);
+  }
+  return lines;
+}
+
+function readingText(spreadKey,question,picks,reversals=true){
+  const sp=SPREADS[spreadKey], q=(question||"").trim();
+  let t=`【夜航塔羅｜${sp.name}】\n`;
+  if(q) t+=`問題：${q}\n`;
+  t+="\n"+summaryLines(picks,reversals).join("\n")+"\n";
+  picks.forEach((d,i)=>{const c=CARDS[d.i];t+=`\n${i+1}. ${sp.pos[i].l}：${c.zh}（${d.rev?"逆位":"正位"}）\n   關鍵字：${d.rev?c.rv:c.up}\n   ${interp(c,d.rev)}\n`});
+  return t;
+}
+
+root.Tarot = {MAJORS,SUITS,CARDS,SPREADS,RANK_ZH,RANK_EN,RANK_THEME,roman,faceSVG,randInt,shuffle,interp,summaryLines,readingText};
+})(globalThis);
+</script>
+
+<!-- 介面層：狀態與互動 -->
+<script id="tarot-ui">
+(function(){
+"use strict";
+const {CARDS,SPREADS,roman,faceSVG,randInt,shuffle,interp,summaryLines,readingText} = Tarot;
+const $=s=>document.querySelector(s);
+const fan=$("#fan"), board=$("#board"), statusEl=$("#status"), fanWrap=$("#fanWrap");
+const reduceMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+const scrollTo=el=>el.scrollIntoView({behavior:reduceMotion()?"auto":"smooth",block:"start"});
+
+/* 狀態：spreadKey、deck、picks、flippedN（另有 revMode 記錄本副牌是否含逆位） */
+let spreadKey="three", deck=[], picks=[], slots=[], flippedN=0, revMode=true;
+/* gen：每次重置遞增，讓排程中的翻牌／解讀在重置後失效；busy：洗牌動畫中暫停抽牌 */
+let gen=0, busy=false;
+
+function newDeck(){revMode=$("#reversals").checked;deck=shuffle(revMode)}
+
+/* ---------- 扇形牌堆：78 張繞著畫面下方一個看不見的圓心旋轉 ---------- */
+let fanEls=[];
+function buildFan(){
+  fan.innerHTML="";fanEls=[];
+  deck.forEach((d,k)=>{
+    const el=document.createElement("button");
+    el.type="button";el.className="fcard back";el.setAttribute("aria-label","抽第 "+(k+1)+" 張牌");
+    el.addEventListener("click",()=>pick(k,el));
+    fan.appendChild(el);fanEls.push(el);
+  });
+  layoutFan(false);
+}
+function layoutFan(gather){
+  const W=fan.clientWidth||320, n=fanEls.length;
+  const fw=W<520?44:W<800?54:62, fh=fw*1.6;
+  const half=(W>700?42:50)*Math.PI/180;
+  let R=(W/2-fw/2-6)/Math.sin(half); R=Math.min(R,560);
+  const top=26;
+  fan.style.height=(top+fh+R*(1-Math.cos(half))+fw*0.8)+"px";
+  fanEls.forEach((el,k)=>{
+    const t=n>1?(-half+2*half*k/(n-1)):0;
+    el.style.width=fw+"px";el.style.height=fh+"px";
+    el.style.left=(W/2-fw/2)+"px";el.style.top=top+"px";
+    el.style.transformOrigin=`50% ${fh/2+R}px`;
+    el.style.transitionDelay=gather?"0ms":(k*6)+"ms";
+    el.style.setProperty("--rot",gather?((k%5)-2)*0.6+"deg":(t*180/Math.PI).toFixed(2)+"deg");
+  });
+}
+let resizeT;
+window.addEventListener("resize",()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>{fanEls.forEach(e=>e.style.transitionDelay="0ms");layoutFan(false);drawSky()},120)});
+
+/* 洗牌：先收攏，再換新牌序依序展開 */
+function shuffleAnim(){
+  reset(false);
+  busy=true;fanWrap.classList.add("busy");
+  layoutFan(true);
+  setStatus("洗牌中……");
+  const g=gen;
+  setTimeout(()=>{
+    if(g!==gen) return;
+    newDeck();buildFan();layoutFan(true);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      busy=false;fanWrap.classList.remove("busy");
+      if(g!==gen) return;
+      layoutFan(false);updateStatus();
+    }));
+  },500);
+}
+
+/* ---------- 牌陣面板 ---------- */
+function buildBoard(){
+  const sp=SPREADS[spreadKey];
+  board.className="board "+spreadKey;
+  board.style.gridTemplateColumns=`repeat(${sp.cols}, var(--cw))`;
+  board.innerHTML="";slots=[];
+  sp.pos.forEach((p,i)=>{
+    const s=document.createElement("div");
+    s.className="slot"+(p.x?" cross":"");
+    s.style.gridColumn=p.c;s.style.gridRow=p.r;
+    s.innerHTML=`<div class="place">${i+1}</div><div class="lab"><i>${i+1}</i>${p.l}</div>`;
+    board.appendChild(s);slots.push(s);
+  });
+  $("#spreadName").textContent=sp.name+" · "+sp.pos.length+" 張";
+  markNext();
+}
+function markNext(){slots.forEach((s,i)=>s.classList.toggle("next",i===picks.length))}
+
+function pick(k,el){
+  const need=SPREADS[spreadKey].pos.length;
+  if(busy||picks.length>=need||el.classList.contains("taken")) return;
+  el.classList.add("taken");
+  const d=deck[k], idx=picks.length; picks.push(d);
+  const card=document.createElement("div");
+  card.className="card"+(d.rev?" rev":"");
+  card.setAttribute("role","button");card.tabIndex=0;
+  card.setAttribute("aria-label","翻開第 "+(idx+1)+" 張牌");
+  card.innerHTML=`<div class="inner"><div class="face back"></div><div class="face front">${faceSVG(CARDS[d.i])}</div></div>`;
+  const act=()=>{ if(!card.classList.contains("flipped")) flip(idx); else { const e=document.getElementById("entry-"+idx); if(e) scrollTo(e) } };
+  card.addEventListener("click",act);
+  card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();act()}});
+  slots[idx].querySelector(".place").appendChild(card);
+  markNext();
+  updateStatus();
+}
+function flip(idx){
+  const card=slots[idx]&&slots[idx].querySelector(".card");
+  if(!card||card.classList.contains("flipped")) return;
+  card.classList.add("flipped");
+  const d=picks[idx];card.setAttribute("aria-label",CARDS[d.i].zh+(d.rev?" 逆位":" 正位"));
+  flippedN++;
+  updateStatus();
+  addEntry(idx);
+  if(flippedN===SPREADS[spreadKey].pos.length){const g=gen;setTimeout(()=>{if(g===gen)finishReading()},700)}
+}
+function updateStatus(){
+  const need=SPREADS[spreadKey].pos.length, left=need-picks.length;
+  const done=left===0;
+  fanWrap.classList.toggle("done",done);
+  $("#revealAll").hidden=!(done&&flippedN<need);
+  if(!done) setStatus(`請憑直覺從牌堆中抽牌，還需要 <b>${left}</b> 張`);
+  else if(flippedN===0) setStatus(`牌已就位。點選牌陣中的牌逐張翻開，或按「全部翻開」`);
+  else if(flippedN<need) setStatus(`已翻開 <b>${flippedN}</b> / ${need} 張，解讀已顯示在下方。繼續翻牌，或按「全部翻開」`);
+  else setStatus(`所有牌已翻開，往下閱讀解讀`);
+}
+function setStatus(h){statusEl.innerHTML=h}
+
+/* ---------- 解讀：翻一張就顯示該張的解讀，全部翻開後補上整體訊息 ---------- */
+function openReading(){
+  if(!$("#readingSec").hidden) return;
+  const sp=SPREADS[spreadKey], q=$("#question").value.trim();
+  const R=$("#reading");R.innerHTML="";
+  const sum=document.createElement("div");sum.className="summary pending";
+  const h=document.createElement("h3");h.textContent=sp.name+" · 整體訊息";sum.appendChild(h);
+  if(q){const p=document.createElement("p");p.className="question";p.textContent="「"+q+"」";sum.appendChild(p)}
+  const pr=document.createElement("p");pr.className="progress";sum.appendChild(pr);
+  R.appendChild(sum);
+  const list=document.createElement("div");list.className="entries";R.appendChild(list);
+  $("#readingActions").hidden=true;
+  $("#readingSec").hidden=false;
+}
+function addEntry(i){
+  openReading();
+  const sp=SPREADS[spreadKey], d=picks[i], c=CARDS[d.i], pos=sp.pos[i];
+  const a=document.createElement("article");a.className="entry";a.id="entry-"+i;a.dataset.i=i;
+  a.innerHTML=`<div class="thumb${d.rev?" rev":""}">${faceSVG(c)}</div>
+    <div><div class="pos">位置 ${i+1} · ${pos.l}</div>
+    <h4>${c.zh}<span class="orient ${d.rev?"rv":"up"}">${d.rev?"逆位":"正位"}</span></h4>
+    <p class="en">${c.en} · ${c.major?"大阿爾克那 "+roman(c.n):c.suit.zh+"（"+c.suit.el+"元素）"}</p>
+    <ul class="kw">${(d.rev?c.rv:c.up).split("、").map(k=>`<li>${k}</li>`).join("")}</ul>
+    <p class="hint">此位置代表：${pos.h}</p>
+    <p class="text">${interp(c,d.rev)}</p></div>`;
+  a.addEventListener("mouseenter",()=>slots[i].querySelector(".card")?.classList.add("hl"));
+  a.addEventListener("mouseleave",()=>slots[i].querySelector(".card")?.classList.remove("hl"));
+  /* 依位置順序插入，不論翻牌先後 */
+  const list=$("#reading .entries");
+  const after=[...list.children].find(e=>+e.dataset.i>i);
+  list.insertBefore(a,after||null);
+  const pr=$("#reading .summary .progress");
+  if(pr) pr.textContent=`已翻開 ${flippedN} / ${sp.pos.length} 張。全部翻開後，這裡會綜合整個牌陣，給出整體訊息。`;
+}
+function finishReading(){
+  const sum=$("#reading .summary");
+  if(!sum) return;
+  sum.querySelector(".progress")?.remove();
+  summaryLines(picks,revMode).forEach(t=>{const p=document.createElement("p");p.className="line";p.textContent=t;sum.appendChild(p)});
+  sum.classList.remove("pending");
+  $("#readingActions").hidden=false;
+  scrollTo(sum);
+}
+
+/* ---------- 重置 ---------- */
+function reset(rebuildFan=true){
+  gen++;
+  picks=[];flippedN=0;
+  $("#readingSec").hidden=true;$("#readingActions").hidden=true;$("#reading").innerHTML="";$("#copied").textContent="";$("#copyFallback").hidden=true;
+  buildBoard();
+  if(rebuildFan){newDeck();buildFan()}
+  updateStatus();
+}
+
+/* ---------- 事件 ---------- */
+document.querySelectorAll('input[name="spread"]').forEach(r=>r.addEventListener("change",()=>{
+  spreadKey=r.value;
+  if(busy) return reset(false);
+  fanEls.forEach(e=>e.classList.remove("taken"));reset(false);
+}));
+$("#shuffle").addEventListener("click",shuffleAnim);
+$("#again").addEventListener("click",()=>{shuffleAnim();scrollTo($("#s2"))});
+$("#reversals").addEventListener("change",()=>{
+  if(picks.length===0&&!busy){revMode=$("#reversals").checked;deck.forEach(d=>d.rev=revMode&&randInt(2)===1)}
+});
+$("#revealAll").addEventListener("click",()=>{const g=gen;picks.forEach((_,i)=>setTimeout(()=>{if(g===gen)flip(i)},i*220))});
+$("#copy").addEventListener("click",()=>{
+  const t=readingText(spreadKey,$("#question").value,picks,revMode);
+  const ok=()=>{$("#copied").textContent="已複製"};
+  try{navigator.clipboard.writeText(t).then(ok,()=>fallback(t))}catch(e){fallback(t)}
+});
+function fallback(t){const ta=$("#copyFallback");ta.hidden=false;ta.value=t;ta.select();$("#copied").textContent="請手動複製下方文字"}
+
+/* ---------- 星空 ---------- */
+const sky=$("#sky");
+function drawSky(){
+  const dpr=Math.min(window.devicePixelRatio||1,2),w=innerWidth,h=innerHeight;
+  sky.width=w*dpr;sky.height=h*dpr;const g=sky.getContext("2d");if(!g)return;g.scale(dpr,dpr);
+  const grd=g.createRadialGradient(w*.5,-h*.1,0,w*.5,-h*.1,h*1.1);grd.addColorStop(0,"rgba(90,70,150,.35)");grd.addColorStop(1,"rgba(19,21,46,0)");
+  g.fillStyle=grd;g.fillRect(0,0,w,h);
+  let seed=7;const r=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const n=Math.round(w*h/5000);
+  for(let i=0;i<n;i++){const x=r()*w,y=r()*h,s=r()*1.2+.2;g.globalAlpha=r()*.6+.15;g.fillStyle=r()<.15?"#d1ab63":"#ece5d3";g.beginPath();g.arc(x,y,s,0,Math.PI*2);g.fill()}
+  g.globalAlpha=1;
+}
+
+/* 測試用唯讀窺視（tests/e2e.html 使用），不影響功能 */
+globalThis.TarotUI={get state(){return {spreadKey,deck:deck.slice(),picks:picks.slice(),flippedN,revMode,busy}}};
+
+drawSky();
+newDeck();buildBoard();buildFan();updateStatus();
+})();
+</script>
+</body>
+</html>
